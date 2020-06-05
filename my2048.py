@@ -11,24 +11,26 @@ __updated__ = '2020-06-02'
 """
 
 import pygame, random
+from copy import copy
 from pygame.locals import *
 
 # initial
 pygame.init()
 
 UNITSIZE = 50
-UNITWIDTH = UNITHEIGHT = 4
-SCREENWIDTH = SCREENHEIGHT = UNITSIZE * UNITHEIGHT
+UNITWIDTH = 8; UNITHEIGHT = 10
+SCREENWIDTH, SCREENHEIGHT = UNITSIZE * UNITWIDTH, UNITSIZE * UNITHEIGHT
 screen = pygame.display.set_mode((SCREENWIDTH, SCREENHEIGHT))
 BASICFONT = pygame.font.Font('freesansbold.ttf', 30)
+pygame.display.set_caption('2048games in size: {}X{}'.format(UNITWIDTH,UNITHEIGHT))
 
 # Color
 LIGHTGRAY = pygame.Color('lightgray')
-GRAY=pygame.Color('gray')
+GRAY = pygame.Color('gray')
 WHITE = pygame.Color('white')
 BLACK = pygame.Color('black')
 RED = pygame.Color('red')
-Metallic_gold = 212,175,55
+Metallic_gold = 212, 175, 55
 
 
 class Game():
@@ -43,19 +45,22 @@ class Game():
     def _getEmptySet(self):
         '''this a empty number set'''
         emptySet = []
-        for i in range(UNITHEIGHT):
+        for i in range(UNITWIDTH):
             emptySet.append([])
-            for _ in range(UNITWIDTH):
+            for _ in range(UNITHEIGHT):
                 emptySet[i].append(None)
         return emptySet
     
     def getRandomNum(self):
         '''random choice a num and place it into a random place'''
+#         print('gameSet before add')
+#         pprint(self.gameSet)
+        
         gameover = False
         num = random.choice((2, 4))
         temp = []  # a list of tuple
-        for i in range(UNITHEIGHT):
-            for j in range(UNITWIDTH):
+        for i in range(len(self.gameSet)):
+            for j in range(len(self.gameSet[i])):
                 if self.gameSet[i][j] == None:
                     temp.append((i, j))
         x, y = random.choice(temp)
@@ -64,6 +69,9 @@ class Game():
             self.largest = num
         else:
             gameover = True
+#         print('add a new num{} at position:'.format(num),x,y)
+#         print('gameSet after add')
+#         pprint(self.gameSet)
         return gameover
     
     def checkOver(self):
@@ -88,14 +96,14 @@ class Game():
             for a in cloumn:
                 if a != None:
                     newCloumn.append(a)
-            for _ in range(UNITWIDTH - len(newCloumn)):
+            for _ in range(len(self.gameSet[0]) - len(newCloumn)):
                 newCloumn.append(None)
             return newCloumn
 
         def merge(cloumn):
             pair = False
             newCloumn = []
-            for i in range(UNITWIDTH):
+            for i in range(len(self.gameSet[0])):
                 if pair:
                     newCloumn.append(2 * cloumn[i])
                     pair = False
@@ -127,8 +135,8 @@ class Game():
     # y=-x transpose
     def _transpose(self):
         new_gameSet = []
-        for i in range(UNITWIDTH):
-            for j in range(UNITHEIGHT): 
+        for i in range(len(self.gameSet)):
+            for j in range(len(self.gameSet[i])): 
                 if i == 0:
                     new_gameSet.append([])
                 new_gameSet[j].append(self.gameSet[i][j])
@@ -136,7 +144,6 @@ class Game():
         return
     
     def moveDown(self):
-        
         self._invert_UD()
         self.moveUp()
         self._invert_UD()
@@ -156,14 +163,16 @@ class Game():
     def ableMoveLeft(self):
         able = False
         # there is a hollow exit
-        for i in range(UNITWIDTH - 1):
-            for j in range(UNITHEIGHT):
-                for x in range(i, UNITHEIGHT - 1):
+        for i in range(len(self.gameSet) - 1):
+            for j in range(len(self.gameSet[i])):
+                for x in range(i, len(self.gameSet)):
+#                     print(i,j,x)
+#                     pprint(self.gameSet)
                     if self.gameSet[i][j] == None and self.gameSet[x][j] != None:
                         able = True
         # there can be merge
-        for i in range(UNITWIDTH - 1):
-            for j in range(UNITHEIGHT):
+        for i in range(len(self.gameSet) - 1):
+            for j in range(len(self.gameSet[i])):
                 if self.gameSet[i][j] == self.gameSet[i + 1][j]:
                     able = True
         return able
@@ -187,8 +196,9 @@ class Game():
         return able
     
     def draw(self):
-        for i in range(UNITWIDTH):
-            for j in range(UNITHEIGHT):
+        for i in range(len(self.gameSet)):
+            for j in range(len(self.gameSet[i])):
+#                 pprint(self.gameSet)
                 if self.gameSet[i][j] != None:
                     numSurf = BASICFONT.render('{}'.format(self.gameSet[i][j]), True, WHITE)
                     numRect = numSurf.get_rect()
@@ -196,23 +206,22 @@ class Game():
                     self.screen.blit(numSurf, numRect)
     
     def drawGameOver(self):
-        font = pygame.font.Font('freesansbold.ttf', 30)
+        font = pygame.font.Font('freesansbold.ttf', 25)
         gameOverScreen = font.render('GameOver', True, RED)
         gameOverRect = gameOverScreen.get_rect()
         gameOverRect.center = (SCREENWIDTH // 2, SCREENHEIGHT // 2)
         screen.blit(gameOverScreen, gameOverRect)
     
     def _largest(self):
-        for i in range(UNITWIDTH):
-            for j in range(UNITHEIGHT):
+        for i in range(len(self.gameSet)):
+            for j in range(len(self.gameSet[i])):
                 if self.gameSet[i][j] is not None and self.gameSet[i][j] > self.largest:
                     self.largest = self.gameSet[i][j]
         return
     
     def drawWin(self):
-        print('here')
         self._largest()
-        if int(self.largest) >= 8:
+        if int(self.largest) >= 100:
             screen.fill(GRAY)
             font = pygame.font.Font('freesansbold.ttf', 25)
             winScreen = font.render('Congratulation', True, Metallic_gold)
@@ -220,7 +229,7 @@ class Game():
             winRect.center = (SCREENWIDTH // 2, SCREENHEIGHT // 2)
             screen.blit(winScreen, winRect)
 
-                
+time=0
 game = Game(screen)
 game.getRandomNum()
 running = True
@@ -244,9 +253,8 @@ while running:
 
         # if the key be press
         if game.move != None:
-            print('A new loop')
-            print(game.move)
-            temp = game.gameSet
+            temp = game.gameSet.copy()
+#             print('first temp here is',temp)
             if game.move == 'left' and game.ableMoveLeft():
                 game.moveLeft()
             elif game.move == 'right' and game.ableMoveRight():
@@ -255,17 +263,23 @@ while running:
                 game.moveUp()
             elif game.move == 'down' and game.ableMoveDown():
                 game.moveDown()
+#             print('After moving temp here is',temp)
+#             print('t!=n',temp != game.gameSet,temp,game.gameSet)
             if temp != game.gameSet:
                 gameover = game.getRandomNum()
                 if gameover:
                     game.gamein = False
             game.move = None
-
+#             print(game.ableMoveUp(),game.ableMoveLeft(),game.ableMoveDown(),game.ableMoveRight())
         game.draw()
         game.checkOver()
     else:
-        screen.fill(GRAY)
-        game.drawGameOver()
+        # delay in millionsecond
+        if time<200:
+            time+=1
+        else:
+            screen.fill(GRAY)
+            game.drawGameOver()
     
     game.drawWin()    
     pygame.display.update()
